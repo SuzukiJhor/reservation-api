@@ -20,8 +20,8 @@ class EventController extends Controller
                 'whatsapp' => $event->whatsapp,
                 'notes' => $event->notes,
                 'all_day' => $event->all_day,
-                'start_time' => Carbon::parse($event->start_time)->format('Y/m/d'),
-                'end_time' => Carbon::parse($event->end_time)->format('Y/m/d'),
+                'start_time' => Carbon::parse($event->start_time)->format('Y-m-d'),
+                'end_time' => Carbon::parse($event->end_time)->format('Y-m-d'),
             ];
         });
 
@@ -30,7 +30,6 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
-        // Criar o validador manualmente
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'whatsapp' => 'required|string|max:20',
@@ -38,11 +37,6 @@ class EventController extends Controller
             'notes' => 'nullable|string',
             'start_time' => 'nullable|string',
             'end_time' => 'nullable|string',
-        ], [
-            'full_name.required' => 'O campo Nome é obrigatório.',
-            'whatsapp.required' => 'O campo WhatsApp é obrigatório.',
-            'start_time.date' => 'A data de início precisa estar no formato correto.',
-            'end_time.date' => 'A data de término precisa estar no formato correto.',
         ]);
 
         if ($validator->fails()) {
@@ -54,12 +48,33 @@ class EventController extends Controller
 
         $validated = $validator->validated();
 
+        // START_TIME
         if (isset($validated['start_time'])) {
-            $validated['start_time'] = Carbon::createFromFormat('d/m/Y', $validated['start_time'])->format('Y-m-d');
+            $date = $this->parseDateFlexible($validated['start_time']);
+            if (!$date) {
+                return response()->json([
+                    'message' => 'Formato de data inválido para start_time'
+                ], 422);
+            }
+            $validated['start_time'] = $date->format('Y/m/d');
         }
 
+        // END_TIME
         if (isset($validated['end_time'])) {
-            $validated['end_time'] = Carbon::createFromFormat('d/m/Y', $validated['end_time'])->format('Y-m-d');
+            $date = $this->parseDateFlexible($validated['end_time']);
+            if (!$date) {
+                return response()->json([
+                    'message' => 'Formato de data inválido para end_time'
+                ], 422);
+            }
+            $validated['end_time'] = $date->format('Y/m/d');
+        }
+
+        // Se end_time não existir → adiciona +1 dia
+        if (!isset($validated['end_time']) && isset($validated['start_time'])) {
+            $validated['end_time'] = Carbon\Carbon::parse($validated['start_time'])
+                ->addDay()
+                ->format('Y/m/d');
         }
 
         $event = Auth::user()->events()->create($validated);
@@ -94,5 +109,30 @@ class EventController extends Controller
         $this->authorize('delete', $event);
         $event->delete();
         return response()->noContent();
+    }
+
+    private function parseDateFlexible($date)
+    {
+        $formats = [
+            'Y-m-d',
+            'd/m/Y',
+            'd-m-Y',
+            'Y/m/d'
+        ];
+
+        foreach ($formats as $format) {
+            try {
+                return Carbon::createFromFormat($format, $date);
+            } catch (\Exception $e) {
+                // tenta o próximo formato
+            }
+        }
+
+        // Última tentativa: Carbon::parse (tenta auto detectar)
+        try {
+            return Carbon::parse($date);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }
