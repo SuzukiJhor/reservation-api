@@ -13,7 +13,7 @@ class EventController extends Controller
     public function index()
     {
         $events = Event::all();
-        dd($events);
+        // dd($events);
         $events = $events->map(function ($event) {
             return [
                 'id' => $event->id,
@@ -25,7 +25,6 @@ class EventController extends Controller
                 'end_time' => Carbon::parse($event->end_time)->format('Y-m-d'),
             ];
         });
-
         return $events;
     }
 

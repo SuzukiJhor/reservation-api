@@ -14,66 +14,67 @@ class ClerkAuth
 {
     public function handle(Request $request, Closure $next)
     {
-        $auth = $request->header('Authorization');
-
-        if (!$auth || !str_starts_with($auth, 'Bearer ')) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        $token = substr($auth, 7);
-
-        // Buscar JWKS com cache (1h)
-        $jwks = Cache::remember('clerk_jwks', 3600, function () {
-            $frontendApi = env('CLERK_FRONTEND_API'); 
-            $jwksUrl = "https://{$frontendApi}/.well-known/jwks.json";
-
-            $response = Http::get($jwksUrl);
-
-            if (!$response->successful()) {
-                return null;
-            }
-
-            return $response->json();
-        });
-
-        if (!$jwks || empty($jwks['keys'])) {
-            return response()->json(['message' => 'JWKS not found'], 500);
-        }
-
         try {
-            // Decodificar JWT usando JWKS do Clerk
-            $decoded = JWT::decode(
-                $token,
-                JWK::parseKeySet($jwks) // CORRETO para firebase/php-jwt 6.x
-            );
-
-            // ID do usuário no Clerk
-            $clerkId = $decoded->sub;
-            if (!$clerkId) {
-                throw new \Exception('Invalid token: missing sub');
-            }
-
-            $user = User::all();
-
-            // Criar ou sincronizar usuário local
-            $user = User::firstOrCreate(
-                ['clerk_user_id' => $clerkId],
-            );
-
-            // if (!$user->is_active) {
-            //     return response()->json(['message' => 'User inactive'], 403);
-            // }
-
-            // Injeta usuário autenticado no request
+            $user = $this->authenticate($request);
             $request->setUserResolver(fn() => $user);
-
             return $next($request);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Unauthorized',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 401);
         }
+    }
+
+    private function authenticate(Request $request)
+    {
+        $token = $this->extractToken($request);
+        $jwks = $this->getJwks();
+        $payload = $this->decodeToken($token, $jwks);
+        return $this->syncUser($payload);
+    }
+
+    private function extractToken(Request $request)
+    {
+        $auth = $request->header('Authorization');
+        if (!$auth || !str_starts_with($auth, 'Bearer ')) {
+            throw new \Exception('Missing or invalid Authorization header');
+        }
+        return substr($auth, 7);
+    }
+
+    private function getJwks()
+    {
+        return Cache::remember('clerk_jwks', 3600, function () {
+            $frontendApi = env('CLERK_FRONTEND_API');
+            $jwksUrl = "https://{$frontendApi}/.well-known/jwks.json";
+            $response = Http::get($jwksUrl);
+            if (!$response->successful()) {
+                throw new \Exception('Failed to fetch JWKS');
+            }
+            return $response->json();
+        });
+    }
+
+    private function decodeToken($token, $jwks)
+    {
+        try {
+            return JWT::decode(
+                $token,
+                JWK::parseKeySet($jwks)
+            );
+        } catch (\Exception $e) {
+            throw new \Exception('Invalid token: ' . $e->getMessage());
+        }
+    }
+
+    private function syncUser($payload)
+    {
+        if (empty($payload->sub)) {
+            throw new \Exception('Token missing sub (user ID)');
+        }
+        return User::firstOrCreate([
+            'clerk_user_id' => $payload->sub
+        ]);
     }
 }
