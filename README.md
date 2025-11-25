@@ -1,2 +1,3 @@
 Laravel-API
-- Authentication with Laravel Sanctum API tokens
+
+- Clerk → valida JWT → cruzar com User local → aplicar regras → liberar acesso Sanctum

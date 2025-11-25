@@ -12,7 +12,8 @@ class EventController extends Controller
 {
     public function index()
     {
-        $events = Auth::user()->events()->get();
+        $events = Event::all();
+        dd($events);
         $events = $events->map(function ($event) {
             return [
                 'id' => $event->id,

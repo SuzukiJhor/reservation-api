@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'clerk' => [
+        'jwks_url' => env('CLERK_JWKS_URL'),
+    ],
+
 ];

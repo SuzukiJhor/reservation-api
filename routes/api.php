@@ -13,7 +13,19 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+// Route::middleware(['clerk'])->group(function () {
+//     Route::get('/user', function (Request $request) {
+//         return $request->user();
+//     });
+
+//     Route::apiResource('events', EventController::class);
+// });
+
+Route::middleware('clerk')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user(); // User sincronizado com Clerk
+    });
+
     Route::apiResource('events', EventController::class);
 });
 
