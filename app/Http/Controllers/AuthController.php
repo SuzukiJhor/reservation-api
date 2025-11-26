@@ -11,28 +11,24 @@ class AuthController extends Controller
 {
     public function registerProfile(Request $request)
     {
-        $user = $request->user();
-          if (!$user) {
-            return response()->json(['message' => 'User not authenticated'], 401);
-        }
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|string|max:255',
             'clerk_user_id' => 'required',
+            'company_id' => 'required',
         ]);
 
-         $user = User::updateOrCreate(
-            ['clerk_user_id' => $validated['clerk_user_id']],
-            [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => bcrypt(str()->random(40)),
-            ]
-        );
-        
+        $user = User::create([
+            'clerk_user_id' => $validated['clerk_user_id'],
+            'name'          => $validated['name'],
+            'email'         => $validated['email'],
+            'company_id'    => $validated['company_id'],
+            'password'      => bcrypt(str()->random(40)),
+        ]);
+        $request->setUserResolver(fn() => $user);
         return response()->json([
             'message' => 'Usuário sincronizado com sucesso',
-            'user' => $user
+            'user'    => $user
         ]);
     }
 
@@ -42,4 +38,5 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Logout realizado com sucesso']);
     }
+
 }

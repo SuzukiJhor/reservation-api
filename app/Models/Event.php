@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
-   protected $fillable = [
+    protected $fillable = [
         'user_id',
         'full_name',
         'whatsapp',
@@ -15,6 +15,11 @@ class Event extends Model
         'start_time',
         'end_time',
     ];
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function user()
     {

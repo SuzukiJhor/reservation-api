@@ -15,8 +15,11 @@ class ClerkAuth
     public function handle(Request $request, Closure $next)
     {
         try {
-            $user = $this->authenticate($request);
-            $request->setUserResolver(fn() => $user);
+            [$clerkUserId, $user] = $this->authenticate($request);
+            if ($user) {
+                $request->setUserResolver(fn() => $user);
+            }
+            $request->merge(['clerk_user_id' => $clerkUserId]);
             return $next($request);
         } catch (\Exception $e) {
             return response()->json([
@@ -31,7 +34,9 @@ class ClerkAuth
         $token = $this->extractToken($request);
         $jwks = $this->getJwks();
         $payload = $this->decodeToken($token, $jwks);
-        return $this->syncUser($payload);
+        $checkSyncUser = $this->checkSyncUser($payload);
+
+        return [$payload->sub, $checkSyncUser];
     }
 
     private function extractToken(Request $request)
@@ -68,13 +73,13 @@ class ClerkAuth
         }
     }
 
-    private function syncUser($payload)
+
+    private function checkSyncUser($payload)
     {
         if (empty($payload->sub)) {
             throw new \Exception('Token missing sub (user ID)');
         }
-        return User::firstOrCreate([
-            'clerk_user_id' => $payload->sub
-        ]);
+        $user = User::where('clerk_user_id', $payload->sub)->first();
+        return $user ?? null;
     }
 }
