@@ -12,7 +12,7 @@ class EventController extends Controller
 {
     public function index()
     {
-        $user = Auth::user() ;
+        $user = Auth::user();
         $events = Event::where('company_id', $user->company_id)->get();
 
         $events = $events->map(function ($event) {
@@ -33,7 +33,7 @@ class EventController extends Controller
     {
         $user_id = $request->user()->id;
         $user_company_id = Auth::user()->company_id;
-      
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'whatsapp' => 'required|string|max:20',
@@ -112,6 +112,25 @@ class EventController extends Controller
     {
         $event->delete();
         return response()->noContent();
+    }
+
+    public function eventsByDate(string $date)
+    {
+        $user = Auth::user();
+        $parsedDate = $this->parseDateFlexible($date);
+
+        if (!$parsedDate) {
+            return response()->json([
+                'message' => 'Formato de data inválido'
+            ], 422);
+        }
+
+        $events = Event::where('company_id', $user->company_id)
+            ->whereDate('start_time', '<=', $parsedDate->format('Y-m-d'))
+            ->whereDate('end_time', '>=', $parsedDate->format('Y-m-d'))
+            ->get();
+
+        return response()->json($events);
     }
 
     private function parseDateFlexible($date)

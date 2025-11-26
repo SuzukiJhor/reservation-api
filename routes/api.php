@@ -31,4 +31,5 @@ Route::middleware('clerk')->group(function () {
     Route::post('/register-profile', [AuthController::class, 'registerProfile']);
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::apiResource('events', EventController::class);
+    Route::get('/events/by-date/{date}', [EventController::class, 'eventsByDate']);
 });
