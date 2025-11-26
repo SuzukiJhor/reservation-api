@@ -9,7 +9,7 @@ use Firebase\JWT\JWK;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Support\Facades\Auth;
 class ClerkAuth
 {
     public function handle(Request $request, Closure $next)
@@ -17,6 +17,7 @@ class ClerkAuth
         try {
             [$clerkUserId, $user] = $this->authenticate($request);
             if ($user) {
+                Auth::login($user);
                 $request->setUserResolver(fn() => $user);
             }
             $request->merge(['clerk_user_id' => $clerkUserId]);

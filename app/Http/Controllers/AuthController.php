@@ -25,7 +25,7 @@ class AuthController extends Controller
             'company_id'    => $validated['company_id'],
             'password'      => bcrypt(str()->random(40)),
         ]);
-        $request->setUserResolver(fn() => $user);
+        
         return response()->json([
             'message' => 'Usuário sincronizado com sucesso',
             'user'    => $user

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Event;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -11,7 +12,8 @@ class EventController extends Controller
 {
     public function index()
     {
-        $events = Event::all();
+        $user = Auth::user() ;
+        $events = Event::where('company_id', $user->company_id)->get();
 
         $events = $events->map(function ($event) {
             return [
@@ -30,6 +32,8 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $user_id = $request->user()->id;
+        $user_company_id = Auth::user()->company_id;
+      
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'whatsapp' => 'required|string|max:20',
@@ -78,6 +82,7 @@ class EventController extends Controller
         }
 
         $validated['user_id'] = $user_id;
+        $validated['company_id'] = $user_company_id;
 
         $event = Event::create($validated);
         return response()->json($event, 201);
@@ -91,8 +96,6 @@ class EventController extends Controller
 
     public function update(Request $request, Event $event)
     {
-        // $this->authorize('update', $event);
-
         $event->update($request->validate([
             'full_name' => 'sometimes|string|max:255',
             'whatsapp' => 'sometimes|string|max:20',
@@ -107,7 +110,6 @@ class EventController extends Controller
 
     public function destroy(Event $event)
     {
-        // $this->authorize('delete', $event);
         $event->delete();
         return response()->noContent();
     }
@@ -129,7 +131,6 @@ class EventController extends Controller
             }
         }
 
-        // Última tentativa: Carbon::parse (tenta auto detectar)
         try {
             return Carbon::parse($date);
         } catch (\Exception $e) {

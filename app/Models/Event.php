@@ -8,6 +8,7 @@ class Event extends Model
 {
     protected $fillable = [
         'user_id',
+        'company_id',
         'full_name',
         'whatsapp',
         'all_day',
