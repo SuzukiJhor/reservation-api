@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Clerk\Backend\Models\Components\Status;
 use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
     protected $fillable = [
+        'status',
         'user_id',
         'company_id',
         'full_name',

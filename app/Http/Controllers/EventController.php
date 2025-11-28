@@ -20,6 +20,7 @@ class EventController extends Controller
                 'id' => $event->id,
                 'full_name' => $event->full_name,
                 'whatsapp' => $event->whatsapp,
+                'status' => $event->status,
                 'notes' => $event->notes,
                 'all_day' => $event->all_day,
                 'start_time' => Carbon::parse($event->start_time)->format('Y-m-d'),
@@ -41,6 +42,7 @@ class EventController extends Controller
             'notes' => 'nullable|string',
             'start_time' => 'nullable|string',
             'end_time' => 'nullable|string',
+            'status' => 'nullable|in:pendente,confirmado,cancelado,expirado',
         ]);
 
         if ($validator->fails()) {
@@ -81,6 +83,10 @@ class EventController extends Controller
                 ->format('Y/m/d');
         }
 
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'pendente';
+        }
+
         $validated['user_id'] = $user_id;
         $validated['company_id'] = $user_company_id;
 
@@ -101,6 +107,7 @@ class EventController extends Controller
             'whatsapp' => 'sometimes|string|max:20',
             'all_day' => 'boolean',
             'notes' => 'nullable|string',
+            'status' => 'sometimes|in:pendente,confirmado,cancelado,expirado',
             'start_time' => 'nullable|date',
             'end_time' => 'nullable|date|after_or_equal:start_time',
         ]));
