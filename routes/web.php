@@ -3,5 +3,5 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return 'ola mundo atualizado';
+    return 'The API is working, my friend.';
 });

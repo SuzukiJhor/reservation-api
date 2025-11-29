@@ -1,4 +1,3 @@
-
 FROM php:8.3-fpm
 
 # Instalar dependências do sistema
@@ -24,10 +23,12 @@ RUN mkdir -p storage/framework/{cache,sessions,views} \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Expor porta usada pela aplicação
+# Copiar entrypoint
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Expor porta
 EXPOSE 10000
 
-# ===============================
-# 2) CMD: Iniciar Laravel
-# ===============================
-CMD php artisan serve --host=0.0.0.0 --port=10000
+# Usar entrypoint personalizado
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
